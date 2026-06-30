@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Hian & Richard</title>
+<style>
+  :root{
+    --vinho: #5c1a2b;
+    --vinho-escuro: #2e0e17;
+    --rosa: #e8a0b4;
+    --rosa-clara: #fbe4ea;
+    --dourado: #d4af6a;
+    --creme: #fff6ef;
+    --texto: #3a1620;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'Poppins', Arial, sans-serif;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,600&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    font-family:var(--font-body);
+    background: radial-gradient(circle at 50% 20%, #7a2438, var(--vinho-escuro) 70%);
+    color:var(--texto);
+  }
+  #app{position:relative; width:100vw; height:100vh; overflow:hidden;}
+
+  .screen{
+    position:absolute; inset:0; display:none; flex-direction:column;
+    align-items:center; justify-content:center; padding:24px;
+    text-align:center;
+  }
+  .screen.active{display:flex;}
+
+  /* ---------- floating hearts background ---------- */
+  .floaters{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden;}
+  .floaters span{
+    position:absolute; bottom:-10%; font-size:18px; opacity:.55;
+    animation: floatUp linear infinite;
+    color: var(--dourado);
+  }
+  @keyframes floatUp{
+    0%{transform:translateY(0) rotate(0deg); opacity:0;}
+    10%{opacity:.6;}
+    90%{opacity:.5;}
+    100%{transform:translateY(-110vh) rotate(360deg); opacity:0;}
+  }
+
+  /* ---------- music toggle ---------- */
+  #musicToggle{
+    position:fixed; top:16px; right:16px; z-index:50;
+    width:46px; height:46px; border-radius:50%;
+    background:rgba(255,255,255,.12); border:1px solid rgba(212,175,106,.6);
+    color:var(--dourado); font-size:20px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; backdrop-filter:blur(4px);
+  }
+  #musicToggle.muted{opacity:.45;}
+
+  /* ---------- start screen ---------- */
+  h1.title{
+    font-family:var(--font-display); color:var(--creme);
+    font-size:clamp(28px,8vw,46px); letter-spacing:1px; margin:0 0 6px;
+    text-shadow:0 2px 18px rgba(0,0,0,.4);
+  }
+  .subtitle{color:var(--rosa); font-size:14px; letter-spacing:3px; text-transform:uppercase; margin-bottom:40px;}
+
+  .envelope-wrap{cursor:pointer; position:relative; width:170px; height:120px; margin:0 auto;}
+  .envelope{
+    width:170px; height:120px; position:relative;
+    animation: sway 2.6s ease-in-out infinite;
+    filter:drop-shadow(0 10px 24px rgba(0,0,0,.45));
+  }
+  @keyframes sway{
+    0%,100%{transform:rotate(-3deg);}
+    50%{transform:rotate(3deg);}
+  }
+  .env-body{position:absolute; inset:0; background:linear-gradient(160deg,var(--rosa),var(--vinho)); border-radius:6px; box-shadow:inset 0 0 0 2px rgba(212,175,106,.6);}
+  .env-flap{
+    position:absolute; top:0; left:0; width:0; height:0;
+    border-left:85px solid transparent; border-right:85px solid transparent;
+    border-top:62px solid var(--vinho);
+  }
+  .env-heart{position:absolute; top:40px; left:50%; transform:translateX(-50%); font-size:26px; color:var(--dourado);}
+  .tap-hint{color:var(--rosa-clara); font-size:13px; margin-top:22px; opacity:.8; animation:pulse 1.8s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:.5;}50%{opacity:1;}}
+
+  .credit{position:absolute; bottom:14px; font-size:11px; color:rgba(255,255,255,.4); letter-spacing:1px;}
+
+  /* ---------- generic buttons ---------- */
+  .btn{
+    font-family:var(--font-body); font-weight:600; font-size:15px;
+    padding:13px 30px; border-radius:30px; border:1px solid var(--dourado);
+    background:transparent; color:var(--creme); cursor:pointer;
+    transition:transform .15s ease, background .2s ease;
+    letter-spacing:.5px;
+  }
+  .btn:active{transform:scale(.96);}
+  .btn.solid{background:linear-gradient(135deg,var(--dourado),#b9893f); color:var(--vinho-escuro); border:none;}
+  .btn.small{padding:9px 18px; font-size:13px;}
+
+  /* ---------- character select ---------- */
+  .char-row{display:flex; gap:18px; margin-top:28px; flex-wrap:wrap; justify-content:center;}
+  .char-card{
+    width:140px; padding:22px 12px 16px; border-radius:18px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(212,175,106,.4);
+    cursor:pointer; transition:transform .15s ease, background .2s ease;
+  }
+  .char-card:active{transform:scale(.95);}
+  .char-card .avatar{
+    width:64px; height:64px; border-radius:50%; margin:0 auto 12px;
+    display:flex; align-items:center; justify-content:center; font-size:26px;
+    background:linear-gradient(135deg,var(--rosa),var(--vinho)); color:var(--creme); font-family:var(--font-display);
+  }
+  .char-card .name{color:var(--creme); font-weight:600;}
+
+  /* ---------- chat screen ---------- */
+  .chat-box{
+    width:100%; max-width:420px; height:62vh; background:rgba(255,255,255,.05);
+    border:1px solid rgba(212,175,106,.35); border-radius:18px; padding:16px;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .chat-messages{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:4px;}
+  .bubble{
+    max-width:80%; padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.4;
+    animation:pop .25s ease;
+  }
+  @keyframes pop{from{transform:scale(.85); opacity:0;} to{transform:scale(1); opacity:1;}}
+  .bubble.them{align-self:flex-start; background:var(--rosa-clara); color:var(--texto); border-bottom-left-radius:4px;}
+  .bubble.me{align-self:flex-end; background:linear-gradient(135deg,var(--dourado),#b9893f); color:var(--vinho-escuro); border-bottom-right-radius:4px;}
+  .chat-replies{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; justify-content:center;}
+
+  /* ---------- menu ---------- */
+  .menu-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:24px; width:100%; max-width:420px;}
+  .menu-grid.menu-grid-3{grid-template-columns:1fr; max-width:300px;}
+  .menu-tile{
+    background:rgba(255,255,255,.06); border:1px solid rgba(212,175,106,.4); border-radius:18px;
+    padding:22px 10px; cursor:pointer; transition:transform .15s ease;
+  }
+  .menu-tile:active{transform:scale(.95);}
+  .menu-tile .icon{font-size:30px; margin-bottom:8px;}
+  .menu-tile .label{color:var(--creme); font-weight:600; font-size:13.5px;}
+  .menu-tile .sub{color:var(--rosa); font-size:11px; margin-top:2px;}
+
+  #lightBtn{
+    position:fixed; top:16px; left:16px; z-index:50;
+    width:46px; height:46px; border-radius:50%;
+    background:rgba(255,255,255,.12); border:1px solid rgba(212,175,106,.6);
+    color:var(--dourado); font-size:20px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  #backBtn{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:50;
+    display:none;
+  }
+  #backBtn.show{display:flex;}
+
+  /* ---------- phrase overlay ---------- */
+  #phraseOverlay{
+    position:fixed; inset:0; background:rgba(20,5,10,.85); z-index:80;
+    display:none; align-items:center; justify-content:center; padding:30px;
+    backdrop-filter:blur(3px);
+  }
+  #phraseOverlay.active{display:flex;}
+  .phrase-card{
+    background:linear-gradient(160deg,var(--rosa),var(--vinho)); border-radius:20px;
+    padding:34px 26px; max-width:340px; text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+  }
+  .phrase-card p{font-family:var(--font-display); font-style:italic; color:var(--creme); font-size:18px; line-height:1.5;}
+
+  h2.section-title{font-family:var(--font-display); color:var(--creme); font-size:24px; margin:0 0 4px;}
+  .section-sub{color:var(--rosa); font-size:12.5px; margin-bottom:18px;}
+
+  /* ---------- maze game ---------- */
+  .maze-wrap{margin:6px auto 18px;}
+  .maze-grid{display:grid; gap:2px; background:rgba(0,0,0,.25); padding:6px; border-radius:12px;}
+  .mcell{background:transparent;}
+  .mcell.wall{background:linear-gradient(135deg,var(--vinho),#3a0f1c);}
+  .mcell.path{background:rgba(255,255,255,.06);}
+  .mcell.player{background:radial-gradient(circle,var(--dourado),#b9893f); border-radius:50%; box-shadow:0 0 10px var(--dourado);}
+  .mcell.goal{background:transparent; display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .maze-pad{display:grid; grid-template-columns:60px 60px 60px; grid-template-rows:54px 54px 54px; gap:6px; justify-content:center; margin-top:6px;}
+  .maze-btn{
+    border-radius:12px; border:1px solid var(--dourado); background:rgba(255,255,255,.08);
+    color:var(--dourado); font-size:18px; cursor:pointer;
+  }
+  .maze-btn:active{background:rgba(212,175,106,.3);}
+  .level-badge{
+    background:rgba(255,255,255,.08); border:1px solid var(--dourado); color:var(--dourado);
+    border-radius:20px; padding:5px 16px; font-size:13px; margin-bottom:14px;
+  }
+
+  /* ---------- memory game ---------- */
+  .memory-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; max-width:460px; width:100%; margin:0 auto;}
+  .mcard{
+    aspect-ratio:1/1.15; border-radius:12px; background:linear-gradient(135deg,var(--vinho),#7a2438);
+    display:flex; align-items:center; justify-content:center; font-size:34px; cursor:pointer;
+    border:1px solid rgba(212,175,106,.4); transition:transform .3s;
+  }
+  .mcard.flipped, .mcard.matched{background:var(--rosa-clara); color:var(--vinho);}
+  .mcard.matched{opacity:.55; border-color:#74c996;}
+  .stat-bar{display:flex; gap:18px; color:var(--rosa); font-size:13px; margin-bottom:14px;}
+  .turn-bar{display:flex; align-items:center; gap:14px; margin-bottom:6px;}
+  .turn-card{
+    min-width:96px; padding:10px 14px; border-radius:14px; background:rgba(255,255,255,.06);
+    border:1px solid rgba(212,175,106,.35); display:flex; flex-direction:column; align-items:center;
+    transition:background .2s, border-color .2s, transform .2s;
+  }
+  .turn-card.active{background:rgba(212,175,106,.22); border-color:var(--dourado); transform:translateY(-2px);}
+  .turn-name{color:var(--creme); font-size:13px; font-weight:600;}
+  .turn-score{color:var(--dourado); font-size:18px; font-weight:700; margin-top:2px;}
+  .turn-vs{color:var(--rosa); font-size:12px;}
+
+  /* ---------- sequence game ---------- */
+  /* ---------- old simon-style buttons removed ---------- */
+
+  /* ---------- puzzle game ---------- */
+  .puzzle-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+    gap:5px; width:280px; height:280px; margin:0 auto; background:rgba(0,0,0,.2);
+    border-radius:14px; padding:5px;
+  }
+  .ptile{
+    background:linear-gradient(135deg,var(--rosa),var(--vinho)); border-radius:8px;
+    display:flex; align-items:center; justify-content:center; color:var(--creme);
+    font-family:var(--font-display); font-size:26px; cursor:pointer;
+  }
+  .ptile.empty{background:transparent; cursor:default;}
+
+  .end-card{max-width:340px;}
+  .end-card .icon{font-size:48px; margin-bottom:10px;}
+
+  ::-webkit-scrollbar{width:5px;}
+  ::-webkit-scrollbar-thumb{background:rgba(212,175,106,.5); border-radius:10px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="floaters" id="floaters"></div>
+  <button id="musicToggle" title="música">♪</button>
+  <button id="lightBtn" title="frases">💡</button>
+  <button id="backBtn" class="btn small">← menu</button>
+
+  <audio id="bgMusic" src="musica.mp3" loop preload="auto"></audio>
+
+  <!-- START -->
+  <section class="screen active" id="screen-start">
+    <h1 class="title">Hian & Richard</h1>
+    <div class="subtitle">uma distância, dois corações</div>
+    <div class="envelope-wrap" id="envelopeBtn">
+      <div class="envelope">
+        <div class="env-body"></div>
+        <div class="env-flap"></div>
+        <div class="env-heart">❤</div>
+      </div>
+    </div>
+    <div class="tap-hint">toque na cartinha para abrir</div>
+    <div class="credit">criado por Richard, para você</div>
+  </section>
+
+  <!-- CHARACTER SELECT -->
+  <section class="screen" id="screen-select">
+    <h2 class="section-title">Quem é você?</h2>
+    <div class="section-sub">escolha seu personagem para começar</div>
+    <div class="char-row">
+      <div class="char-card" data-char="Hian">
+        <div class="avatar">H</div>
+        <div class="name">Hian</div>
+      </div>
+      <div class="char-card" data-char="Richard">
+        <div class="avatar">R</div>
+        <div class="name">Richard</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHAT -->
+  <section class="screen" id="screen-chat">
+    <h2 class="section-title" id="chatTitle">conversa</h2>
+    <div class="chat-box">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-replies" id="chatReplies"></div>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section class="screen" id="screen-menu">
+    <h2 class="section-title">Nosso cantinho</h2>
+    <div class="section-sub" id="menuGreeting">o que vamos jogar hoje?</div>
+    <div class="menu-grid menu-grid-3">
+      <div class="menu-tile" data-game="maze">
+        <div class="icon">🌙</div>
+        <div class="label">Labirinto da Saudade</div>
+        <div class="sub">10 fases até chegar ao coração</div>
+      </div>
+      <div class="menu-tile" data-game="puzzle">
+        <div class="icon">🧩</div>
+        <div class="label">Quebra-cabeça</div>
+        <div class="sub">organize os números de 1 a 8</div>
+      </div>
+      <div class="menu-tile" data-game="memory">
+        <div class="icon">🃏</div>
+        <div class="label">Jogo da Memória</div>
+        <div class="sub">encontre os pares de cartas</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAZE -->
+  <section class="screen" id="screen-maze">
+    <h2 class="section-title">Labirinto da Saudade</h2>
+    <div class="level-badge" id="mazeLevel">fase 1 / 10</div>
+    <div class="section-sub" id="mazeStatus">chegue até o coração ❤</div>
+    <div class="maze-wrap" id="mazeWrap"></div>
+    <div class="maze-pad">
+      <div></div><button class="maze-btn" data-d="up">▲</button><div></div>
+      <button class="maze-btn" data-d="left">◀</button><div></div><button class="maze-btn" data-d="right">▶</button>
+      <div></div><button class="maze-btn" data-d="down">▼</button><div></div>
+    </div>
+  </section>
+
+  <!-- PUZZLE -->
+  <section class="screen" id="screen-puzzle">
+    <h2 class="section-title">Quebra-cabeça</h2>
+    <div class="section-sub" id="puzzleStatus">arraste as peças até formar o coração</div>
+    <div class="puzzle-grid" id="puzzleGrid"></div>
+  </section>
+
+  <!-- MEMORY -->
+  <section class="screen" id="screen-memory">
+    <h2 class="section-title">Jogo da Memória</h2>
+    <div class="level-badge" id="memRound">rodada 1</div>
+    <div class="turn-bar">
+      <div class="turn-card" id="turnP1"><span class="turn-name" id="p1Name">Você</span><span class="turn-score" id="p1Score">0</span></div>
+      <div class="turn-vs">x</div>
+      <div class="turn-card" id="turnP2"><span class="turn-name" id="p2Name">Bot</span><span class="turn-score" id="p2Score">0</span></div>
+    </div>
+    <div class="section-sub" id="memTurnLabel">sua vez</div>
+    <div class="memory-grid" id="memoryGrid"></div>
+  </section>
+
+  <!-- END / RESULT -->
+  <section class="screen" id="screen-end">
+    <div class="end-card">
+      <div class="icon" id="endIcon">💖</div>
+      <h2 class="section-title" id="endTitle">Parabéns!</h2>
+      <div class="section-sub" id="endSub"></div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
+        <button class="btn small" id="endReplay">jogar de novo</button>
+        <button class="btn small solid" id="endMenu">voltar ao menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHRASE OVERLAY -->
+  <div id="phraseOverlay">
+    <div class="phrase-card">
+      <p id="phraseText"></p>
+      <button class="btn small" id="phraseClose" style="margin-top:18px;">fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ helpers ============ */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+const screens = {};
+$$('.screen').forEach(s=> screens[s.id]=s);
+function showScreen(id){
+  Object.values(screens).forEach(s=>s.classList.remove('active'));
+  screens[id].classList.add('active');
+  $('#backBtn').classList.toggle('show', id!=='screen-start');
+}
+
+/* floating hearts background */
+const floaters = $('#floaters');
+const heartChars = ['❤','✦','♡','✧'];
+for(let i=0;i<16;i++){
+  const s = document.createElement('span');
+  s.textContent = heartChars[Math.floor(Math.random()*heartChars.length)];
+  s.style.left = Math.random()*100+'%';
+  s.style.fontSize = (12+Math.random()*16)+'px';
+  s.style.animationDuration = (10+Math.random()*14)+'s';
+  s.style.animationDelay = (Math.random()*14)+'s';
+  floaters.appendChild(s);
+}
+
+/* music */
+const music = $('#bgMusic');
+const musicBtn = $('#musicToggle');
+let musicStarted = false;
+musicBtn.addEventListener('click', ()=>{
+  if(music.paused){ music.play().catch(()=>{}); musicBtn.classList.remove('muted'); musicBtn.textContent='♪'; }
+  else { music.pause(); musicBtn.classList.add('muted'); musicBtn.textContent='✕'; }
+});
+function tryStartMusic(){
+  if(musicStarted) return;
+  musicStarted = true;
+  music.volume = 0.55;
+  music.play().catch(()=>{ musicBtn.classList.add('muted'); musicBtn.textContent='♪'; });
+}
+
+/* love phrases */
+const phrases = [
+  "Mesmo longe, você é o lugar onde meus pensamentos sempre voltam.",
+  "A distância só me ensinou o tamanho do que sinto por você.",
+  "Cada dia que conversamos é um motivo a mais pra esperar o dia de te abraçar.",
+  "Não importa os quilômetros, meu coração já mora perto do seu.",
+  "Você é a saudade boa, aquela que vale a pena sentir todos os dias.",
+  "Um dia a distância vira só uma história que contaremos rindo.",
+  "Penso em você antes de dormir e ainda penso quando acordo.",
+  "Nosso 'todo dia' é o que me faz acreditar no nosso 'para sempre'.",
+];
+$('#lightBtn').addEventListener('click', ()=>{
+  $('#phraseText').textContent = phrases[Math.floor(Math.random()*phrases.length)];
+  $('#phraseOverlay').classList.add('active');
+});
+$('#phraseClose').addEventListener('click', ()=> $('#phraseOverlay').classList.remove('active'));
+
+/* back button -> menu (only if a character was chosen) */
+$('#backBtn').addEventListener('click', ()=>{
+  if(chosenChar){ updateMenuGreeting(); showScreen('screen-menu'); }
+  else showScreen('screen-start');
+});
+
+/* ============ flow: start -> select -> chat -> menu ============ */
+let chosenChar = null;
+
+$('#envelopeBtn').addEventListener('click', ()=>{
+  tryStartMusic();
+  showScreen('screen-select');
+});
+
+$$('.char-card').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    chosenChar = c.dataset.char;
+    startChat(chosenChar);
+    showScreen('screen-chat');
+  });
+});
+
+const chatScripts = {
+  Hian: [
+    {who:'them', text:'Oi, amor... vi que você entrou aqui. Que saudade de você. ❤'},
+    {who:'them', text:'Eu sei que moramos longe e ainda nem nos vimos pessoalmente, mas a gente conversa todo santo dia.'},
+    {who:'them', text:'Fiz esse joguinho pensando em você. Quer jogar comigo?'},
+  ],
+  Richard: [
+    {who:'them', text:'Oi, meu amor. Que bom te ver por aqui de novo. ❤'},
+    {who:'them', text:'Sei que a distância pesa às vezes, mas cada conversa nossa faz valer a pena esperar.'},
+    {who:'them', text:'Preparei um cantinho nosso aqui. Bora jogar?'},
+  ]
+};
+function startChat(char){
+  $('#chatTitle').textContent = char === 'Hian' ? 'Richard está te esperando' : 'Hian está te esperando';
+  const box = $('#chatMessages');
+  box.innerHTML = '';
+  $('#chatReplies').innerHTML = '';
+  const script = chatScripts[char];
+  let i = 0;
+  function next(){
+    if(i < script.length){
+      addBubble(script[i].who, script[i].text);
+      i++;
+      setTimeout(next, 900);
+    } else {
+      showReplies();
+    }
+  }
+  setTimeout(next, 500);
+}
+function addBubble(who, text){
+  const box = $('#chatMessages');
+  const b = document.createElement('div');
+  b.className = 'bubble ' + who;
+  b.textContent = text;
+  box.appendChild(b);
+  box.scrollTop = box.scrollHeight;
+}
+function showReplies(){
+  const rep = $('#chatReplies');
+  rep.innerHTML = '';
+  const opts = ['Bora! ❤', 'Estou com saudade também...'];
+  opts.forEach(o=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn small';
+    btn.textContent = o;
+    btn.addEventListener('click', ()=>{
+      addBubble('me', o);
+      rep.innerHTML = '';
+      setTimeout(()=>{
+        addBubble('them', 'Então vem comigo. 💛');
+        setTimeout(()=>{ updateMenuGreeting(); showScreen('screen-menu'); }, 1100);
+      }, 700);
+    });
+    rep.appendChild(btn);
+  });
+}
+function updateMenuGreeting(){
+  $('#menuGreeting').textContent = chosenChar ? `${chosenChar}, o que vamos jogar hoje?` : 'o que vamos jogar hoje?';
+}
+
+/* menu navigation */
+$$('.menu-tile').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    const g = t.dataset.game;
+    if(g==='quiz') startQuiz();
+    if(g==='seq') startSeq();
+    if(g==='puzzle') startPuzzle();
+    if(g==='memory') startMemory();
+  });
+});
+$('#endMenu').addEventListener('click', ()=>{ updateMenuGreeting(); showScreen('screen-menu'); });
+
+function showEnd(title, sub, icon){
+  $('#endTitle').textContent = title;
+  $('#endSub').textContent = sub;
+  $('#endIcon').textContent = icon || '💖';
+  showScreen('screen-end');
+}
+
+/* ============ MAZE GAME (10 levels, generated labyrinths) ============ */
+let mazeLevel = 1, mazeData = null, mazeSize = 5, playerPos = {x:0,y:0}, goalPos = {x:0,y:0};
+
+function startMaze(){
+  mazeLevel = 1;
+  showScreen('screen-maze');
+  buildMazeLevel();
+}
+function buildMazeLevel(){
+  mazeSize = 7 + Math.floor((mazeLevel-1) * 1.4); // cresce de 7 até ~19, bem mais difícil
+  if(mazeSize % 2 === 0) mazeSize++;
+  $('#mazeLevel').textContent = `fase ${mazeLevel} / 10`;
+  $('#mazeStatus').textContent = 'chegue até o coração ❤';
+  mazeData = generateMaze(mazeSize, mazeSize);
+  playerPos = {x:0, y:0};
+  goalPos = {x:mazeSize-1, y:mazeSize-1};
+  renderMaze();
+}
+// generate maze via recursive backtracker; grid cells: 1=wall,0=path. Dimensions are (2n+1)x(2n+1)
+function generateMaze(cols, rows){
+  const w = cols, h = rows; // logical cell counts
+  const gridW = w*2+1, gridH = h*2+1;
+  const grid = Array.from({length:gridH}, ()=> Array(gridW).fill(1));
+  const visited = Array.from({length:h}, ()=> Array(w).fill(false));
+  function carve(cx, cy){
+    visited[cy][cx] = true;
+    grid[cy*2+1][cx*2+1] = 0;
+    const dirs = shuffleArray([[0,-1],[0,1],[-1,0],[1,0]]);
+    for(const [dx,dy] of dirs){
+      const nx = cx+dx, ny = cy+dy;
+      if(nx>=0 && nx<w && ny>=0 && ny<h && !visited[ny][nx]){
+        grid[cy*2+1+dy][cx*2+1+dx] = 0;
+        carve(nx, ny);
+      }
+    }
+  }
+  carve(0,0);
+  return grid; // size gridH x gridW, indices [row][col], 0=path,1=wall
+}
+function renderMaze(){
+  const wrap = $('#mazeWrap');
+  const gridH = mazeData.length, gridW = mazeData[0].length;
+  const maxBox = Math.min(window.innerWidth - 56, window.innerHeight * 0.42, 340);
+  const cellPx = Math.max(6, Math.min(maxBox / gridW, maxBox / gridH));
+  wrap.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'maze-grid';
+  grid.style.gridTemplateColumns = `repeat(${gridW}, ${cellPx}px)`;
+  grid.style.gridTemplateRows = `repeat(${gridH}, ${cellPx}px)`;
+  for(let r=0;r<gridH;r++){
+    for(let c=0;c<gridW;c++){
+      const cell = document.createElement('div');
+      cell.style.width = cellPx+'px';
+      cell.style.height = cellPx+'px';
+      const isWall = mazeData[r][c]===1;
+      const px = (c-1)/2, py = (r-1)/2;
+      const isPlayer = !isWall && px===playerPos.x && py===playerPos.y;
+      const isGoal = !isWall && px===goalPos.x && py===goalPos.y;
+      cell.className = 'mcell ' + (isWall?'wall':'path') + (isPlayer?' player':'') + (isGoal?' goal':'');
+      if(isGoal && !isPlayer) cell.textContent = '❤';
+      grid.appendChild(cell);
+    }
+  }
+  wrap.appendChild(grid);
+}
+function canMove(px, py, dx, dy){
+  // check wall between cells in grid coordinates
+  const gx = px*2+1+dx, gy = py*2+1+dy;
+  if(gy<0 || gy>=mazeData.length || gx<0 || gx>=mazeData[0].length) return false;
+  return mazeData[gy][gx] === 0;
+}
+$$('.maze-btn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const d = b.dataset.d;
+    let dx=0, dy=0;
+    if(d==='up') dy=-1; if(d==='down') dy=1; if(d==='left') dx=-1; if(d==='right') dx=1;
+    if(canMove(playerPos.x, playerPos.y, dx, dy)){
+      playerPos.x += dx; playerPos.y += dy;
+      renderMaze();
+      if(playerPos.x===goalPos.x && playerPos.y===goalPos.y){
+        if(mazeLevel >= 10){
+          setTimeout(()=> showEnd('Você chegou até o coração!', 'Completou as 10 fases do labirinto da saudade ❤', '❤'), 300);
+        } else {
+          $('#mazeStatus').textContent = 'muito bem! próxima fase...';
+          mazeLevel++;
+          setTimeout(buildMazeLevel, 800);
+        }
+      }
+    }
+  });
+});
+// keyboard support
+document.addEventListener('keydown', (e)=>{
+  if(!screens['screen-maze'].classList.contains('active')) return;
+  const map = {ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right'};
+  if(map[e.key]) $(`.maze-btn[data-d="${map[e.key]}"]`).click();
+});
+
+/* ============ PUZZLE (3x3 sliding heart puzzle) ============ */
+const puzzleSymbols = ['1','2','3','4','5','6','7','8',''];
+let puzzleState = [];
+function startPuzzle(){
+  showScreen('screen-puzzle');
+  $('#puzzleStatus').textContent = 'arraste as peças até organizar de 1 a 8';
+  do{
+    puzzleState = shuffleArray([...puzzleSymbols]);
+  } while(!isSolvable(puzzleState));
+  renderPuzzle();
+}
+function shuffleArray(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function isSolvable(arr){
+  const nums = arr.map(s=> s===''? 9 : puzzleSymbols.indexOf(s)+1);
+  let inv=0;
+  for(let i=0;i<nums.length;i++) for(let j=i+1;j<nums.length;j++)
+    if(nums[i]!==9 && nums[j]!==9 && nums[i]>nums[j]) inv++;
+  return inv % 2 === 0;
+}
+function renderPuzzle(){
+  const grid = $('#puzzleGrid');
+  grid.innerHTML = '';
+  puzzleState.forEach((sym, idx)=>{
+    const t = document.createElement('div');
+    t.className = 'ptile' + (sym===''?' empty':'');
+    t.textContent = sym;
+    t.addEventListener('click', ()=> tryMove(idx));
+    grid.appendChild(t);
+  });
+}
+function tryMove(idx){
+  const empty = puzzleState.indexOf('');
+  const r1=Math.floor(idx/3), c1=idx%3, r2=Math.floor(empty/3), c2=empty%3;
+  if(Math.abs(r1-r2)+Math.abs(c1-c2)===1){
+    [puzzleState[idx], puzzleState[empty]] = [puzzleState[empty], puzzleState[idx]];
+    renderPuzzle();
+    if(puzzleState.join('') === puzzleSymbols.join('')){
+      setTimeout(()=> showEnd('Coração completo!', 'Você montou o nosso quebra-cabeça 🧩', '🧩'), 300);
+    }
+  }
+}
+
+/* ============ MEMORY GAME (turn-based: você vs bot, com rodadas) ============ */
+const memoryIconPool = ['❤','✨','💌','🌙','💍','🎀','🌹','💫','☾','🕊','🌷','🦋'];
+let memCards = [], memMatched = 0, memLock = false, memFlipped = [];
+let memRound = 1, memPairsTotal = 6;
+let memTurn = 'p1'; // 'p1' = jogador, 'p2' = bot
+let memScores = {p1:0, p2:0};
+let botMemory = {}; // icon -> [idx,...] seen by bot
+
+function otherChar(){
+  return chosenChar === 'Hian' ? 'Richard' : (chosenChar === 'Richard' ? 'Hian' : 'Bot');
+}
+
+function startMemory(){
+  memRound = 1;
+  memScores = {p1:0, p2:0};
+  $('#p1Name').textContent = chosenChar || 'Você';
+  $('#p2Name').textContent = otherChar();
+  showScreen('screen-memory');
+  setupMemoryRound();
+}
+function setupMemoryRound(){
+  memPairsTotal = Math.min(5 + memRound, memoryIconPool.length); // cresce a cada rodada
+  $('#memRound').textContent = `rodada ${memRound}`;
+  memMatched = 0; memFlipped = []; memLock = false; botMemory = {};
+  memTurn = 'p1';
+  updateTurnUI();
+  const icons = shuffleArray([...memoryIconPool]).slice(0, memPairsTotal);
+  memCards = shuffleArray([...icons, ...icons]);
+  const grid = $('#memoryGrid');
+  grid.innerHTML = '';
+  memCards.forEach((icon, idx)=>{
+    const c = document.createElement('div');
+    c.className = 'mcard';
+    c.dataset.icon = icon;
+    c.dataset.idx = idx;
+    c.textContent = '?';
+    c.addEventListener('click', ()=> flipCard(c, true));
+    grid.appendChild(c);
+  });
+}
+function updateTurnUI(){
+  $('#p1Score').textContent = memScores.p1;
+  $('#p2Score').textContent = memScores.p2;
+  $('#turnP1').classList.toggle('active', memTurn==='p1');
+  $('#turnP2').classList.toggle('active', memTurn==='p2');
+  $('#memTurnLabel').textContent = memTurn==='p1' ? 'sua vez' : `vez de ${otherChar()}...`;
+}
+function rememberCard(c){
+  const icon = c.dataset.icon, idx = parseInt(c.dataset.idx);
+  if(!botMemory[icon]) botMemory[icon] = [];
+  if(!botMemory[icon].includes(idx)) botMemory[icon].push(idx);
+}
+function flipCard(c, byPlayer){
+  if(memLock || c.classList.contains('flipped') || c.classList.contains('matched')) return;
+  if(byPlayer && memTurn !== 'p1') return;
+  c.classList.add('flipped');
+  c.textContent = c.dataset.icon;
+  rememberCard(c);
+  memFlipped.push(c);
+  if(memFlipped.length===2){
+    memLock = true;
+    const [a,b] = memFlipped;
+    if(a.dataset.icon === b.dataset.icon){
+      a.classList.add('matched'); b.classList.add('matched');
+      memMatched++;
+      memScores[memTurn]++;
+      memFlipped = []; memLock = false;
+      updateTurnUI();
+      if(memMatched === memPairsTotal){
+        finishMemoryRound();
+      } else {
+        // acertou: joga de novo (mesma vez)
+        if(memTurn === 'p2') setTimeout(botTurn, 700);
+      }
+    } else {
+      setTimeout(()=>{
+        a.classList.remove('flipped'); a.textContent='?';
+        b.classList.remove('flipped'); b.textContent='?';
+        memFlipped = []; memLock = false;
+        // errou: passa a vez
+        memTurn = memTurn === 'p1' ? 'p2' : 'p1';
+        updateTurnUI();
+        if(memTurn === 'p2') setTimeout(botTurn, 700);
+      }, 750);
+    }
+  }
+}
+function botTurn(){
+  if(memTurn !== 'p2') return;
+  const cards = [...$('#memoryGrid').children].filter(c=> !c.classList.contains('matched') && !c.classList.contains('flipped'));
+  if(cards.length === 0) return;
+  // tenta usar memória: ver se conhece um par já visto
+  let pick1 = null, pick2 = null;
+  for(const icon in botMemory){
+    const idxs = botMemory[icon].filter(i=>{
+      const el = $(`.mcard[data-idx="${i}"]`);
+      return el && !el.classList.contains('matched');
+    });
+    if(idxs.length >= 2 && Math.random() < 0.75){
+      pick1 = $(`.mcard[data-idx="${idxs[0]}"]`);
+      pick2 = $(`.mcard[data-idx="${idxs[1]}"]`);
+      break;
+    }
+  }
+  if(pick1 && pick2){
+    flipCard(pick1, false);
+    setTimeout(()=> flipCard(pick2, false), 550);
+  } else {
+    const choice1 = cards[Math.floor(Math.random()*cards.length)];
+    flipCard(choice1, false);
+    setTimeout(()=>{
+      const remaining = [...$('#memoryGrid').children].filter(c=> !c.classList.contains('matched') && !c.classList.contains('flipped') && c!==choice1);
+      // tenta achar o par conhecido da carta que acabou de virar
+      const icon = choice1.dataset.icon;
+      let matchEl = null;
+      if(botMemory[icon]){
+        const idxs = botMemory[icon].filter(i=> i!==parseInt(choice1.dataset.idx));
+        for(const i of idxs){
+          const el = $(`.mcard[data-idx="${i}"]`);
+          if(el && !el.classList.contains('matched')){ matchEl = el; break; }
+        }
+      }
+      const choice2 = matchEl || remaining[Math.floor(Math.random()*remaining.length)];
+      flipCard(choice2, false);
+    }, 600);
+  }
+}
+function finishMemoryRound(){
+  setTimeout(()=>{
+    const total = memScores.p1 + memScores.p2;
+    if(memRound >= 4){
+      const vencedor = memScores.p1 > memScores.p2 ? (chosenChar||'Você') : (memScores.p2 > memScores.p1 ? otherChar() : 'empate');
+      const sub = vencedor === 'empate'
+        ? `Empate de ${memScores.p1} a ${memScores.p2} depois de ${memRound} rodadas 🃏`
+        : `${vencedor} venceu por ${Math.max(memScores.p1,memScores.p2)} a ${Math.min(memScores.p1,memScores.p2)} 🃏`;
+      showEnd('Fim de jogo!', sub, '🃏');
+    } else {
+      memRound++;
+      setupMemoryRound();
+    }
+  }, 500);
+}
+
+/* ============ replay logic ============ */
+let lastGame = null;
+const origStartMaze = startMaze, origStartPuzzle = startPuzzle, origStartMemory = startMemory;
+function wrap(fn, name){ return function(){ lastGame = name; fn(); }; }
+window.startMaze = wrap(origStartMaze, 'maze');
+window.startPuzzle = wrap(origStartPuzzle, 'puzzle');
+window.startMemory = wrap(origStartMemory, 'memory');
+$$('.menu-tile').forEach(t=>{
+  t.replaceWith(t.cloneNode(true));
+});
+$$('.menu-tile').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    const g = t.dataset.game;
+    if(g==='maze') window.startMaze();
+    if(g==='puzzle') window.startPuzzle();
+    if(g==='memory') window.startMemory();
+  });
+});
+$('#endReplay').addEventListener('click', ()=>{
+  if(lastGame==='maze') window.startMaze();
+  else if(lastGame==='puzzle') window.startPuzzle();
+  else if(lastGame==='memory') window.startMemory();
+});
+</script>
+</body>
+</html>
