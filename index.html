@@ -29,10 +29,11 @@
 
   .screen{
     position:absolute; inset:0; display:none; flex-direction:column;
-    align-items:center; justify-content:center; padding:24px;
-    text-align:center;
+    align-items:center; justify-content:flex-start; padding:78px 20px 36px;
+    text-align:center; overflow-y:auto; -webkit-overflow-scrolling:touch;
   }
   .screen.active{display:flex;}
+  #screen-start{justify-content:center; padding-top:24px;}
 
   /* ---------- floating hearts background ---------- */
   .floaters{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden;}
@@ -564,7 +565,7 @@ function generateMaze(cols, rows){
 function renderMaze(){
   const wrap = $('#mazeWrap');
   const gridH = mazeData.length, gridW = mazeData[0].length;
-  const maxBox = Math.min(window.innerWidth - 56, window.innerHeight * 0.42, 340);
+  const maxBox = Math.min(window.innerWidth - 56, window.innerHeight * 0.38, 340);
   const cellPx = Math.max(6, Math.min(maxBox / gridW, maxBox / gridH));
   wrap.innerHTML = '';
   const grid = document.createElement('div');
